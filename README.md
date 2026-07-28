@@ -11,21 +11,13 @@ hard to find and unreliable.
 A centralized, moderation-based platform where students can:
 - Browse PYQs semester-wise
 - Upload papers for review
-- Community-vote to approve correctness
 - Download without login
 
 ## Tech Stack
 - HTML, CSS, JavaScript
 - Supabase (Database, Storage, RLS)
 - Netlify (Hosting)
-- Google Analytics
-
-## Key Engineering Highlights
-- Community-based moderation workflow
-- Secure public uploads using Row Level Security
-- Dynamic content fetching without server backend
-- Scales safely for concurrent downloads
-
+  
 ## Future Improvements
 - Stronger abuse prevention
 - Better UI
