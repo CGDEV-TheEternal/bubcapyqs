@@ -1,0 +1,235 @@
+<html>
+    <head>
+        <title>Unofficial Burdwan University BCA PYQs site</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" type="image/x-icon" href="icon.png">
+    </head>
+    <body style="margin:0; background-color: #b3b1fc;">
+        <table style="text-align: left; width:100%; table-layout: fixed;">
+       <tr style="background-color: #4d5896">
+        <td style="width:40px"><a href="index.html"><img src="icon.png" width="40px" height="40px"></a></td>
+        <td><a href="index.html" style="text-decoration: none; color: aliceblue;font-size: clamp(1.2rem, 2vw + 0.9rem, 3rem);">Burdwan University BCA PYQs</a></td>
+        <td style="width:55px" align="center"><a href="index.html#about" style="text-decoration: none; color: aliceblue; font-size: clamp(1.3rem, 2vw, 1.3rem);"><img src="about.png" style="width:30px; height:30px"></a></td>
+        <td style="width: 55px;"><a href="" onclick="document.getElementById('feedback_box').style.display='flex' ;return false;"><img src="feedback.png" style="width:55px; height:60px"></a></td>
+       </tr>
+       <div id="feedback_box" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);align-items: center;justify-content: center; z-index:9999;">
+        <div style="position:relative;width: 80%;max-width:500px; background:white; padding:25px; border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,0.3);">
+            <span onclick="document.getElementById('feedback_box').style.display='none';" style="position:absolute;top:5px;right:15px; font-size:38px;cursor:pointer;">&times;</span>
+            <h2 align="center">Feedback</h2>
+            <center><label for="feedback_type" style="font-weight: bold;font-size: 1.2rem; color:rgb(53,50,103);margin:0%">Feedback type:</label>
+                <select id="feedback_type" style="width:140px;height:40px;border-radius: 1rem;padding: 0.2rem;">
+                    <option value="bug">Bug</option>
+                    <option value="feature">Feature Request</option>
+                    <option value="report">Report wrong PYQ</option>
+                    <option value="other">Others</option>
+                </select></center>
+            <br/>
+            <center><textarea id="text_area" placeholder="Please share your thoughts here..." style="width:100%; height:20rem;font-size: 18px;resize:none;" maxlength="1000"></textarea></center>
+            <div style="font-size: 20px;color: #666;text-align:right;margin-top: 4px;">
+                <span id="current-count">0</span> / 1000 characters
+            </div>
+            <br/><br/>
+            <center><button id="send_feedback" onclick="feedback_send();" style="width:9rem;height:4rem;border-radius: 1.1rem;border-color: #aca2d5;background-color: #9592e8;color: rgb(255, 255, 255);font-weight: bold;font-size: 1.5rem; -webkit-text-stroke: 1px #222; text-shadow: 2px 2px #5b5b5b; box-shadow:3px 6px 0 #21618c ; cursor:pointer" ontouchstart="this.style.backgroundColor='#56548c'" ontouchend="this.style.backgroundColor='#9592e8'" onmousedown="this.style.backgroundColor='#56548c'" onmouseup="this.style.backgroundColor='#9592e8'">Send feedback</button></center>
+        </div>
+       </div>
+       <div id="thank_feedback_box" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);align-items: center;justify-content: center; z-index:9999;">
+        <div style="position:relative;width: 80%;max-width:500px; background:white; padding:25px; border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,0.3);">
+            <h2 align="center">Thank you for your feedback</h2>
+        </div>
+       </div>
+       <tr>
+        <td colspan="4"><marquee style="background-color: #f0d28d; height:30px; width :100%; font-size:1.2rem; color: red;text-align: center;">Disclaimer: This is an unofficial site and is not affiliated with Burdwan University</marquee></td>
+       </tr>
+       <tr><td colspan="4" height="562rem">
+        <div id="results"></div></td></tr>
+
+       <tr>
+        <td colspan="4"><div id="bottom" style="width:100%; height: 1.5rem; background: rgba(255,255,255,0.6)"><center><p id="bottom_details" style="font-weight:bold ; font-size: 1.2rem; margin:1%; text-align: center; color:rgb(53, 50, 103)"></p></center></div></td>
+       </tr>
+       </table>
+    </body>
+</html>
+
+<script>
+    const currentYear=new Date().getFullYear();
+    const bottom=document.getElementById("bottom_details");
+    bottom.innerHTML=currentYear+"   |   Burdwan University BCA PYQs (Unofficial)";
+</script>
+
+
+<script>
+const storedResults = sessionStorage.getItem("results");
+
+if (storedResults) {
+
+    const data = JSON.parse(storedResults);
+    const results = document.getElementById("results");
+
+    if (!Array.isArray(data) || data.length === 0) {
+
+        results.innerHTML = `
+            <div style="
+                text-align:center;
+                font-size:1.4rem;
+                font-weight:bold;
+                color:rgb(53,50,103);
+                padding:30px;
+            ">
+                No question papers found.
+            </div>
+        `;
+
+    } else {
+
+        data.forEach(paper => {
+
+            const card = document.createElement("div");
+
+            card.style.cssText = `
+                width:85%;
+                max-width:650px;
+                margin:25px auto;
+                padding:20px;
+                background:rgba(255,255,255,0.85);
+                border-radius:18px;
+                box-shadow:0 5px 15px rgba(0,0,0,0.2);
+                box-sizing:border-box;
+            `;
+
+            card.innerHTML = `
+                <div style="
+                    font-size:1.4rem;
+                    font-weight:bold;
+                    color:rgb(53,50,103);
+                    margin-bottom:12px;
+                ">
+                    ${paper.subject}
+                </div>
+
+                <div style="
+                    font-size:1.1rem;
+                    color:rgb(70,70,90);
+                    line-height:1.7;
+                ">
+                    <b>Semester:</b> ${paper.semester}<br>
+                    <b>Year:</b> ${paper.year}
+                </div>
+
+                <div style="
+                    margin-top:18px;
+                    display:flex;
+                    gap:15px;
+                    justify-content:center;
+                    flex-wrap:wrap;
+                ">
+
+                    <a href="${paper.file_path}" target="_blank"
+                       style="
+                            display:inline-flex;
+                            align-items:center;
+                            justify-content:center;
+                            width:120px;
+                            height:45px;
+                            background:#9592e8;
+                            color:white;
+                            text-decoration:none;
+                            font-weight:bold;
+                            font-size:1.1rem;
+                            border-radius:12px;
+                            box-shadow:3px 5px 0 #21618c;
+                       ">
+                        View
+                    </a>
+
+                    <a href="${paper.file_path}" download
+                       style="
+                            display:inline-flex;
+                            align-items:center;
+                            justify-content:center;
+                            width:120px;
+                            height:45px;
+                            background:#9592e8;
+                            color:white;
+                            text-decoration:none;
+                            font-weight:bold;
+                            font-size:1.1rem;
+                            border-radius:12px;
+                            box-shadow:3px 5px 0 #21618c;
+                       ">
+                        Download
+                    </a>
+
+                </div>
+            `;
+
+            results.appendChild(card);
+        });
+    }
+
+} else {
+
+    document.getElementById("results").innerHTML = `
+        <div style="
+            text-align:center;
+            font-size:1.4rem;
+            font-weight:bold;
+            color:rgb(53,50,103);
+            padding:30px;
+        ">
+            No search results found.
+        </div>
+    `;
+}
+</script>
+
+<script>
+async function feedback_send() {
+    const textArea = document.getElementById("text_area");
+    const type = document.getElementById("feedback_type").value;
+    const msg = textArea.value.trim();
+
+    if (!msg) {
+        alert("Please enter your feedback.");
+        return;
+    }
+
+    const button = document.getElementById("send_feedback");
+
+    button.disabled = true;
+
+    try {
+        const response = await fetch("feedback.php", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body:
+                "type=" + encodeURIComponent(type) +
+                "&message=" + encodeURIComponent(msg)
+        });
+
+        if (!response.ok) {
+            throw new Error("HTTP error: " + response.status);
+        }
+
+        const data = await response.json();
+        const thank_box=document.getElementById("thank_feedback_box");
+        if (data.success) {
+
+            document.getElementById("feedback_box").style.display = "none";
+
+            textArea.value = "";
+            document.getElementById("current-count").textContent = "0";
+            setTimeout(()=>{thank_box.style.display='flex';setTimeout(()=>{thank_box.style.display='none'},2000)},500);
+        } else {
+            alert(data.error || "Failed to send feedback.");
+        }
+
+    } catch (error) {
+        console.error("Feedback failed:", error);
+        alert("Something went wrong. Please try again.");
+    } finally {
+        button.disabled = false;
+    }
+}
+</script>

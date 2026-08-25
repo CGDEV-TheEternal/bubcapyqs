@@ -1,23 +1,36 @@
-# BU unofficial PYQ Platform
+# Burdwan University BCA PYQs
 
-A community-driven platform for burdwan university students to access and contribute
-previous year question papers (PYQs).
+An unofficial website for accessing previous-year question papers (PYQs) for BCA students of Burdwan University.
 
-## Problem
-PYQs are scattered across WhatsApp groups and personal drives, making them
-hard to find and unreliable.
+## About
 
-## Solution
-A centralized, moderation-based platform where students can:
-- Browse PYQs semester-wise
-- Upload papers for review
-- Download without login
+Burdwan University BCA PYQs is a student-focused platform created to make previous-year question papers easier to find and access.
 
-## Tech Stack
-- HTML, CSS, JavaScript
-- Supabase (Database, Storage, RLS)
-- Netlify (Hosting)
-  
-## Future Improvements
-- Stronger abuse prevention
-- Better UI
+Users can:
+
+- 📚 Search question papers by semester, subject, and year
+- 👁️ View question papers
+- 📥 Download question papers
+- 📤 Upload missing question papers
+- 💬 Submit feedback, bug reports, and feature requests
+
+## Disclaimer
+
+This is an **unofficial website** and is not affiliated with, endorsed by, or officially associated with Burdwan University.
+
+The question papers are collected and shared for educational and reference purposes.
+
+## Technology
+
+### Frontend
+- HTML
+- CSS
+- JavaScript
+
+### Backend
+- PHP
+- MySQL
+
+### Hosting
+- Frontend: Netlify
+- Backend: InfinityFree
