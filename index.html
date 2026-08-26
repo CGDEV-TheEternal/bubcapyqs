@@ -290,10 +290,15 @@
             }
         );
 
+        const raw=await response.text();
+        console.log("HTTP status:",response.status);
+        console.log("Server response:",raw);
+        const data=json.parse(raw);
+
             if(!response.ok){
                 throw new Error('HTTP error:${response.status}');
             }
-            const data=await response.json();
+            // const data=await response.json();
             sessionStorage.setItem("results",JSON.stringify(data));
             window.location.href="download.html";
         }
