@@ -1,42 +1,53 @@
 exports.handler = async function (event) {
-    const path = event.queryStringParameters?.endpoint;
 
-    const endpoints = {
+    const endpoint = event.queryStringParameters?.endpoint;
+
+    const urls = {
         search: "https://bubcapyqs.thsite.top/search.php",
         upload: "https://bubcapyqs.thsite.top/upload.php",
         feedback: "https://bubcapyqs.thsite.top/feedback.php"
     };
 
-    if (!path || !endpoints[path]) {
+    if (!urls[endpoint]) {
         return {
             statusCode: 400,
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                success: false,
                 error: "Invalid endpoint"
             })
         };
     }
 
     try {
-        const headers = {};
 
-        // Forward Content-Type
-        if (event.headers["content-type"]) {
-            headers["Content-Type"] = event.headers["content-type"];
+        const contentType =
+            event.headers["content-type"] ||
+            event.headers["Content-Type"] ||
+            "";
+
+        let body = undefined;
+
+        if (event.httpMethod !== "GET") {
+            body = event.isBase64Encoded
+                ? Buffer.from(event.body, "base64")
+                : event.body;
         }
 
-        const response = await fetch(endpoints[path], {
+        const response = await fetch(urls[endpoint], {
             method: event.httpMethod,
-            headers: headers,
-            body: event.httpMethod === "GET"
-                ? undefined
-                : event.body
+            headers: {
+                "Content-Type": contentType
+            },
+            body: body
         });
 
-        const data = await response.text();
+        const responseText = await response.text();
+
+        console.log("Method:", event.httpMethod);
+        console.log("PHP status:", response.status);
+        console.log("PHP response:", responseText);
 
         return {
             statusCode: response.status,
@@ -45,11 +56,12 @@ exports.handler = async function (event) {
                     response.headers.get("content-type") ||
                     "application/json"
             },
-            body: data
+            body: responseText
         };
 
     } catch (error) {
-        console.error("Proxy error:", error);
+
+        console.error(error);
 
         return {
             statusCode: 500,
@@ -57,8 +69,7 @@ exports.handler = async function (event) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                success: false,
-                error: "Could not connect to PHP server"
+                error: error.message
             })
         };
     }
