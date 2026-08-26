@@ -4,13 +4,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="icon" type="image/x-icon" href="icon.png">
     </head>
-    <body style="margin:0; background-color: #b3b1fc;">
+    <body style="margin:0; background-color: #b3b1fc; overflow-x:hidden;">
         <table style="text-align: left; width:100%;height:100%; table-layout: fixed;">
        <tr style="background-color: #4d5896">
         <td style="width:40px"><a href="index.html"><img src="icon.png" width="40px" height="40px"></a></td>
         <td><a href="index.html" style="text-decoration: none; color: aliceblue;font-size: clamp(1.2rem, 2vw + 0.9rem, 3rem);">Burdwan University BCA PYQs</a></td>
         <td style="width:55px" align="center"><a href="#about" style="text-decoration: none; color: aliceblue; font-size: clamp(1.3rem, 2vw, 1.3rem);"><img src="about.png" style="width:30px; height:30px"></a></td>
-        <td style="width: 55px;"><a href="" onclick="document.getElementById('feedback_box').style.display='flex' ;return false;"><img src="feedback.png" style="width:55px; height:60px"></a></td>
+        <td style="width: 55px;"><a href="" onclick="document.getElementById('feedback_box').style.display='flex' ;return false;"><img src="feedback.webp" style="width:55px; height:60px;"></a></td>
        </tr>
        <div id="feedback_box" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);align-items: center;justify-content: center; z-index:9999;">
         <div style="position:relative;width: 80%;max-width:500px; background:white; padding:25px; border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,0.3);">
@@ -108,10 +108,11 @@
                 </select>
                 <br/><br/><br/>
 
-                <input type="file" id="pdfFile" accept="application/pdf" style="font-size: 18px; padding: 10px;">
+                
+                <input type="file" id="pdfFile" accept="application/pdf" style="font-size: 18px; padding: 10px;width:100%;max-width:100%">
 
                 <br/><br/><br/>
-                <center><button onclick="upload()" id="upload_btn" style="width:11rem;height:3.3rem;border-radius: 1.2rem;border-color: #3304f0;background-color: #9592e8;color: rgb(255, 255, 255);font-weight: bold;font-size: 2rem; -webkit-text-stroke: 1px #222; text-shadow: 2px 2px #5b5b5b; box-shadow:3px 6px 0 #21618c ; cursor:pointer" ontouchstart="this.style.backgroundColor='#56548c'" ontouchend="this.style.backgroundColor='#9592e8'" onmousedown="this.style.backgroundColor='#56548c'" onmouseup="this.style.backgroundColor='#9592e8'"><img src="upload.png" style="width:1.8rem;height:1.8rem"> Upload</button></center>
+                <center><button onclick="upload()" id="upload_btn" style="width:11rem;height:3.3rem;border-radius: 1.2rem;border-color: #3304f0;background-color: #9592e8;color: rgb(255, 255, 255);font-weight: bold;font-size: 2rem; -webkit-text-stroke: 1px #222; text-shadow: 2px 2px #5b5b5b; box-shadow:3px 6px 0 #21618c ; cursor:pointer" ontouchstart="this.style.backgroundColor='#56548c'" ontouchend="this.style.backgroundColor='#9592e8'" onmousedown="this.style.backgroundColor='#56548c'" onmouseup="this.style.backgroundColor='#9592e8'"><img src="upload.webp" style="width:1.8rem;height:1.8rem"> Upload</button></center>
                 <br/><br/>
             </div>
         </div></center></td>
@@ -140,6 +141,18 @@
        </table>
     </body>
 </html>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const SUPABASE_URL = "https://efumovbpxzrgzegqvvyx.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmdW1vdmJweHpyZ3plZ3F2dnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MzMzMDEsImV4cCI6MjEwMzMwOTMwMX0.6jdCSHDJkBc9HHTg7dV_NE5lWI5WAgnz6Wq_a4lbkCo";
+
+const supabaseClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+</script>
 
 <script>
     const download_semester=document.getElementById("download_semester");
@@ -274,36 +287,43 @@
         const subject=document.getElementById("download_subject").value;
         const year=document.getElementById("download_year").value;
 
-        try{
-            const response = await fetch(
-            "/.netlify/functions/api?endpoint=search",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type":
-                        "application/x-www-form-urlencoded"
-                },
-                body:
-                    "semester=" + encodeURIComponent(semester) +
-                    "&subject=" + encodeURIComponent(subject) +
-                    "&year=" + encodeURIComponent(year)
-            }
-        );
+        try {
+            let query = supabaseClient
+                .from("papers")
+                .select("*");
 
-        const raw=await response.text();
-        console.log("HTTP status:",response.status);
-        console.log("Server response:",raw);
-        const data=json.parse(raw);
-
-            if(!response.ok){
-                throw new Error('HTTP error:${response.status}');
+            // Filter by semester
+            if (semester !== "all_sem") {
+                query = query.eq("semester", semester);
             }
-            // const data=await response.json();
-            sessionStorage.setItem("results",JSON.stringify(data));
-            window.location.href="download.html";
-        }
-        catch(error){
-            console.log("Search failed:",error);
+
+            // Filter by subject
+            if (subject !== "all_sub") {
+                query = query.eq("subject", subject);
+            }
+
+            // Filter by year
+            if (year !== "all_year") {
+                query = query.eq("year", year);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                console.error("Supabase search error:", error);
+                throw error;
+            }
+
+
+            sessionStorage.setItem(
+                "results",
+                JSON.stringify(data)
+            );
+
+            window.location.href = "download.html";
+
+        } catch (error) {
+            console.error("Search failed:", error);
             alert("Failed to search. Please try again.");
         }
     }
@@ -322,12 +342,20 @@ async function upload() {
         return;
     }
 
-    const formData = new FormData();
+    if (file.type !== "application/pdf") {
+        alert("Please select a PDF file.");
+        fileInput.value = "";
+        return;
+    }
 
-    formData.append("semester", semester);
-    formData.append("subject", subject);
-    formData.append("year", year);
-    formData.append("pdfFile", file);
+    // Check file size (5 MB)
+    const maxSize = 5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+        alert("PDF must be smaller than 5 MB.");
+        fileInput.value = "";
+        return;
+    }
 
     const uploadButton = document.getElementById("upload_btn");
 
@@ -336,44 +364,82 @@ async function upload() {
     const upload_box=document.getElementById("upload_box");
     const box=document.getElementById("up_bx");
     const text=document.getElementById("uploading_text");
+
     box.style.background="#EDEDEE";
     text.innerHTML="Uploading...<br/><img src='uploading.gif' width='100rem' height='100rem'>"
     upload_box.style.display='flex';
 
     try {
-        const response = await fetch("/.netlify/functions/api?endpoint=upload", {
-            method: "POST",
-            body: formData
-        });
+        const filePath=semester+"/"+subject+"/"+year+".pdf";
+        const fileName=subject+"_"+semester+"_"+year+".pdf";
+        
+        const { error: storageError } =
+            await supabaseClient
+                .storage
+                .from("pyqs")
+                .upload(filePath, file, {
+                    contentType: "application/pdf",
+                    upsert: false
+                });
 
-        if (!response.ok) {
-            throw new Error(
-                "HTTP error: " + response.status
-            );
+        if (storageError) {
+
+            // File already exists
+            if (
+                storageError.message &&
+                storageError.message.toLowerCase().includes("already exists")
+            ) {
+                text.innerHTML =
+                    "File already uploaded by someone";
+
+                setTimeout(() => {
+                    upload_box.style.display = "none";
+                }, 3000);
+
+                return;
+            }
+
+            throw storageError;
         }
 
-        const data = await response.json();
 
-        if (data.success) {
-            box.style.background="#EBF0FF";
-            text.innerHTML="Uploaded successfully<br/><img src='uploaded.gif' width='100rem' height='100rem'>";
-            setTimeout(()=>{
-                text.innerHTML="Thank you for your contribution<br/><img src='heart.png' width='60rem' height='50rem'>";
-                setTimeout(()=>{
-                    upload_box.style.display="none";
-                },2000);
-            },3000);
-            fileInput.value = "";
-        } else {
-            text.innerHTML="File already uploaded by someone";
+        const { error: databaseError } =
+            await supabaseClient
+                .from("papers")
+                .insert({
+                    file_path: filePath,
+                    file_name: fileName,
+                    semester: Number(semester),
+                    subject: subject,
+                    year: Number(year)
+                });
+
+        if (databaseError) {
+
+            await supabaseClient
+                .storage
+                .from("pyqs")
+                .remove([filePath]);
+
+            throw databaseError;
+        }
+
+        box.style.background="#EBF0FF";
+        text.innerHTML="Uploaded successfully<br/><img src='uploaded.gif' width='100rem' height='100rem'>";
+        setTimeout(()=>{
+            text.innerHTML="Thank you for your contribution<br/><img src='heart.png' width='60rem' height='50rem'>";
             setTimeout(()=>{
                 upload_box.style.display="none";
-            },3000);
-        }
-
+            },2000);
+        },3000);
+        fileInput.value = "";
     } catch (error) {
         console.error("Upload failed:", error);
-        alert("Something went wrong. Please try again.");
+        text.innerHTML="Upload failed. Please try again.";
+        setTimeout(() => {
+            upload_box.style.display = "none";
+        }, 3000);
+
 
     } finally {
         uploadButton.disabled = false;
@@ -397,32 +463,27 @@ async function feedback_send() {
     button.disabled = true;
 
     try {
-        const response = await fetch("/.netlify/functions/api?endpoint=feedback", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body:
-                "type=" + encodeURIComponent(type) +
-                "&message=" + encodeURIComponent(msg)
-        });
+         const { data, error } = await supabaseClient
+            .from("feedback")
+            .insert({
+                feedback_type: type,
+                message: msg
+            });
 
-        if (!response.ok) {
-            throw new Error("HTTP error: " + response.status);
+        if (error) {
+            throw error;
         }
 
-        const data = await response.json();
+
+        document.getElementById("feedback_box").style.display = "none";
         const thank_box=document.getElementById("thank_feedback_box");
-        if (data.success) {
 
-            document.getElementById("feedback_box").style.display = "none";
+        textArea.value = "";
+        document.getElementById("current-count").textContent = "0";
+        document.getElementById("feedback_type").value="bug";
+        setTimeout(()=>{thank_box.style.display='flex';setTimeout(()=>{thank_box.style.display='none'},2000)},500);
+        
 
-            textArea.value = "";
-            document.getElementById("current-count").textContent = "0";
-            setTimeout(()=>{thank_box.style.display='flex';setTimeout(()=>{thank_box.style.display='none'},2000)},500);
-        } else {
-            alert(data.error || "Failed to send feedback.");
-        }
 
     } catch (error) {
         console.error("Feedback failed:", error);

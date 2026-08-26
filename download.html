@@ -10,7 +10,7 @@
         <td style="width:40px"><a href="index.html"><img src="icon.png" width="40px" height="40px"></a></td>
         <td><a href="index.html" style="text-decoration: none; color: aliceblue;font-size: clamp(1.2rem, 2vw + 0.9rem, 3rem);">Burdwan University BCA PYQs</a></td>
         <td style="width:55px" align="center"><a href="index.html#about" style="text-decoration: none; color: aliceblue; font-size: clamp(1.3rem, 2vw, 1.3rem);"><img src="about.png" style="width:30px; height:30px"></a></td>
-        <td style="width: 55px;"><a href="" onclick="document.getElementById('feedback_box').style.display='flex' ;return false;"><img src="feedback.png" style="width:55px; height:60px"></a></td>
+        <td style="width: 55px;"><a href="" onclick="document.getElementById('feedback_box').style.display='flex' ;return false;"><img src="feedback.webp" style="width:55px; height:60px"></a></td>
        </tr>
        <div id="feedback_box" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);align-items: center;justify-content: center; z-index:9999;">
         <div style="position:relative;width: 80%;max-width:500px; background:white; padding:25px; border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,0.3);">
@@ -40,15 +40,27 @@
        <tr>
         <td colspan="4"><marquee style="background-color: #f0d28d; height:30px; width :100%; font-size:1.2rem; color: red;text-align: center;">Disclaimer: This is an unofficial site and is not affiliated with Burdwan University</marquee></td>
        </tr>
-       <tr><td colspan="4" height="562rem">
+       <tr><td colspan="4" height="566rem">
         <div id="results"></div></td></tr>
 
        <tr>
-        <td colspan="4"><div id="bottom" style="width:100%; height: 1.5rem; background: rgba(255,255,255,0.6)"><center><p id="bottom_details" style="font-weight:bold ; font-size: 1.2rem; margin:1%; text-align: center; color:rgb(53, 50, 103)"></p></center></div></td>
+        <td colspan="4"><div id="bottom" style="width:100%; height: 1.5rem; background: rgba(255,255,255,0.6)"><center><p id="bottom_details" style="font-weight:bold ; font-size: 1.0rem; margin:0%; text-align: center; color:rgb(53, 50, 103)"></p></center></div></td>
        </tr>
        </table>
     </body>
 </html>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const SUPABASE_URL = "https://efumovbpxzrgzegqvvyx.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmdW1vdmJweHpyZ3plZ3F2dnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MzMzMDEsImV4cCI6MjEwMzMwOTMwMX0.6jdCSHDJkBc9HHTg7dV_NE5lWI5WAgnz6Wq_a4lbkCo";
+
+const supabaseClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+</script>
 
 <script>
     const currentYear=new Date().getFullYear();
@@ -82,6 +94,27 @@ if (storedResults) {
     } else {
 
         data.forEach(paper => {
+
+            // Generate the public URL for this PDF
+            const { data: urlData } = supabaseClient
+                .storage
+                .from("pyqs")
+                .getPublicUrl(paper.file_path);
+            
+            const viewUrl = urlData.publicUrl;
+
+            // Generate a download URL with our custom filename
+            const { data: downloadUrlData } = supabaseClient
+                .storage
+                .from("pyqs")
+                .getPublicUrl(
+                    paper.file_path,
+                    {
+                        download: paper.file_name
+                    }
+                );
+
+            const downloadUrl = downloadUrlData.publicUrl;
 
             const card = document.createElement("div");
 
@@ -123,7 +156,7 @@ if (storedResults) {
                     flex-wrap:wrap;
                 ">
 
-                    <a href="${paper.file_path}" target="_blank"
+                    <a href="${viewUrl}" target="_blank"
                        style="
                             display:inline-flex;
                             align-items:center;
@@ -141,7 +174,7 @@ if (storedResults) {
                         View
                     </a>
 
-                    <a href="${paper.file_path}" download
+                    <a href="${downloadUrl}" download
                        style="
                             display:inline-flex;
                             align-items:center;
@@ -198,32 +231,27 @@ async function feedback_send() {
     button.disabled = true;
 
     try {
-        const response = await fetch("/.netlify/functions/api?endpoint=feedback", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body:
-                "type=" + encodeURIComponent(type) +
-                "&message=" + encodeURIComponent(msg)
-        });
+         const { data, error } = await supabaseClient
+            .from("feedback")
+            .insert({
+                feedback_type: type,
+                message: msg
+            });
 
-        if (!response.ok) {
-            throw new Error("HTTP error: " + response.status);
+        if (error) {
+            throw error;
         }
 
-        const data = await response.json();
+
+        document.getElementById("feedback_box").style.display = "none";
         const thank_box=document.getElementById("thank_feedback_box");
-        if (data.success) {
+        
+        textArea.value = "";
+        document.getElementById("current-count").textContent = "0";
+        document.getElementById("feedback_type").value="bug";
+        setTimeout(()=>{thank_box.style.display='flex';setTimeout(()=>{thank_box.style.display='none'},2000)},500);
+        
 
-            document.getElementById("feedback_box").style.display = "none";
-
-            textArea.value = "";
-            document.getElementById("current-count").textContent = "0";
-            setTimeout(()=>{thank_box.style.display='flex';setTimeout(()=>{thank_box.style.display='none'},2000)},500);
-        } else {
-            alert(data.error || "Failed to send feedback.");
-        }
 
     } catch (error) {
         console.error("Feedback failed:", error);

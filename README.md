@@ -27,10 +27,12 @@ The question papers are collected and shared for educational and reference purpo
 - CSS
 - JavaScript
 
-### Backend
-- PHP
-- MySQL
+### Backend & Database
+
+- Supabase
+  - PostgreSQL database
+  - Supabase Storage
 
 ### Hosting
-- Frontend: Netlify
-- Backend: InfinityFree
+
+- Netlify
