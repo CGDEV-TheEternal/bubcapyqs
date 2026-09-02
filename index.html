@@ -109,7 +109,7 @@
                 <br/><br/><br/>
 
                 
-                <input type="file" id="pdfFile" accept="application/pdf" style="font-size: 18px; padding: 10px;width:100%;max-width:100%">
+                <input type="file" id="pdf_img_File" accept="application/pdf,image/jpeg,image/png,image/webp" multiple style="font-size: 18px; padding: 10px;width:100%;max-width:100%">
 
                 <br/><br/><br/>
                 <center><button onclick="upload()" id="upload_btn" style="width:11rem;height:3.3rem;border-radius: 1.2rem;border-color: #3304f0;background-color: #9592e8;color: rgb(255, 255, 255);font-weight: bold;font-size: 2rem; -webkit-text-stroke: 1px #222; text-shadow: 2px 2px #5b5b5b; box-shadow:3px 6px 0 #21618c ; cursor:pointer" ontouchstart="this.style.backgroundColor='#56548c'" ontouchend="this.style.backgroundColor='#9592e8'" onmousedown="this.style.backgroundColor='#56548c'" onmouseup="this.style.backgroundColor='#9592e8'"><img src="upload.webp" style="width:1.8rem;height:1.8rem"> Upload</button></center>
@@ -143,6 +143,7 @@
 </html>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 const SUPABASE_URL = "https://efumovbpxzrgzegqvvyx.supabase.co";
@@ -256,15 +257,56 @@ const supabaseClient = supabase.createClient(
 </script>
 
 <script>
-    document.getElementById("pdfFile").addEventListener("change",function(){
-        const file=this.files[0];
-        if(!file) return;
-        if(file.type!=="application/pdf"){
-            alert("Please select a PDF file.");
-            this.value="";
+document.getElementById("pdf_img_File").addEventListener("change", function () {
+
+    const files = [...this.files];
+
+    if (!files.length) return;
+
+    const allowedTypes = [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    ];
+
+    for (const file of files) {
+        if (!allowedTypes.includes(file.type)) {
+            alert(
+                "Only PDF, JPG, PNG and WEBP files are allowed."
+            );
+
+            this.value = "";
             return;
         }
-    });
+    }
+
+    // Don't allow PDF + images together
+    const hasPDF = files.some(
+        file => file.type === "application/pdf"
+    );
+
+    const hasImages = files.some(
+        file => file.type.startsWith("image/")
+    );
+
+    if (hasPDF && hasImages) {
+        alert(
+            "Please select either a PDF OR images, not both."
+        );
+
+        this.value = "";
+        return;
+    }
+
+    // Only one PDF
+    if (hasPDF && files.length > 1) {
+        alert("Please select only one PDF file.");
+        this.value = "";
+        return;
+    }
+
+});
 </script>
 
 <script>
@@ -330,89 +372,560 @@ const supabaseClient = supabase.createClient(
 </script>
 
 <script>
+
+const { jsPDF } = window.jspdf;
+/*
+    Convert one image File into a compressed JPEG
+*/
+async function compressImage(file, maxDimension = 1800, quality = 0.75) {
+
+    const imageURL = URL.createObjectURL(file);
+
+    try {
+
+        const img = new Image();
+
+        await new Promise((resolve, reject) => {
+
+            img.onload = resolve;
+            img.onerror = reject;
+
+            img.src = imageURL;
+
+        });
+
+        let width = img.naturalWidth;
+        let height = img.naturalHeight;
+
+
+        // Resize large images
+        if (width > maxDimension || height > maxDimension) {
+
+            const scale = Math.min(
+                maxDimension / width,
+                maxDimension / height
+            );
+
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+        }
+
+
+        const canvas = document.createElement("canvas");
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+
+
+        // White background
+        // Important for PNG images with transparency
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+
+
+        ctx.drawImage(
+            img,
+            0,
+            0,
+            width,
+            height
+        );
+
+
+        // Convert to JPEG
+        return canvas.toDataURL(
+            "image/jpeg",
+            quality
+        );
+
+    } finally {
+
+        URL.revokeObjectURL(imageURL);
+
+    }
+}
+
+
+
+/*
+    Convert multiple images into one PDF
+*/
+async function imagesToPDF(
+    imageFiles,
+    maxDimension = 1800,
+    quality = 0.75
+) {
+
+    const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+        compress: true
+    });
+
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+
+    // Margin
+    const margin = 8;
+
+    const availableWidth = pageWidth - margin * 2;
+    const availableHeight = pageHeight - margin * 2;
+
+
+    for (let i = 0; i < imageFiles.length; i++) {
+
+        const file = imageFiles[i];
+
+        if (i > 0) {
+            pdf.addPage();
+        }
+
+
+        const imageData = await compressImage(
+            file,
+            maxDimension,
+            quality
+        );
+
+
+        // Get image dimensions
+        const img = new Image();
+
+        await new Promise((resolve, reject) => {
+
+            img.onload = resolve;
+            img.onerror = reject;
+
+            img.src = imageData;
+
+        });
+
+
+        let width = img.naturalWidth;
+        let height = img.naturalHeight;
+
+
+        // Fit image inside A4 page
+        const scale = Math.min(
+            availableWidth / width,
+            availableHeight / height
+        );
+
+
+        width *= scale;
+        height *= scale;
+
+
+        const x = (pageWidth - width) / 2;
+        const y = (pageHeight - height) / 2;
+
+
+        pdf.addImage(
+            imageData,
+            "JPEG",
+            x,
+            y,
+            width,
+            height,
+            undefined,
+            "MEDIUM"
+        );
+    }
+
+
+    return pdf.output("blob");
+}
+
+</script>
+
+<script>
+
+async function createPDFUnder5MB(imageFiles) {
+
+    // Don't actually aim for exactly 5 MB.
+    // Keep a safety margin.
+    const targetSize = 4.8 * 1024 * 1024;
+
+
+    const attempts = [
+        {
+            maxDimension: 1800,
+            quality: 0.75
+        },
+        {
+            maxDimension: 1600,
+            quality: 0.65
+        },
+        {
+            maxDimension: 1400,
+            quality: 0.55
+        },
+        {
+            maxDimension: 1200,
+            quality: 0.45
+        },
+        {
+            maxDimension: 1000,
+            quality: 0.35
+        },
+        {
+            maxDimension: 850,
+            quality: 0.30
+        }
+    ];
+
+
+    for (const settings of attempts) {
+
+        console.log(
+            "Creating PDF:",
+            settings
+        );
+
+
+        const pdfBlob = await imagesToPDF(
+            imageFiles,
+            settings.maxDimension,
+            settings.quality
+        );
+
+
+        console.log(
+            "PDF size:",
+            (pdfBlob.size / 1024 / 1024).toFixed(2),
+            "MB"
+        );
+
+
+        if (pdfBlob.size < targetSize) {
+
+            return pdfBlob;
+
+        }
+
+    }
+
+
+    // Could not get below target size
+    return null;
+}
+
+</script>
+
+<script>
+
 async function upload() {
-    const semester = document.getElementById("upload_semester").value;
-    const subject = document.getElementById("upload_subject").value;
-    const year = document.getElementById("upload_year").value;
-    const fileInput = document.getElementById("pdfFile");
-    const file = fileInput.files[0];
 
-    if (!file) {
-        alert("Please select a PDF file.");
+    const semester =
+        document.getElementById("upload_semester").value;
+
+    const subject =
+        document.getElementById("upload_subject").value;
+
+    const year =
+        document.getElementById("upload_year").value;
+
+    const fileInput =
+        document.getElementById("pdf_img_File");
+
+    const files = [...fileInput.files];
+
+
+    if (!files.length) {
+
+        alert(
+            "Please select a PDF or image file."
+        );
+
         return;
     }
 
-    if (file.type !== "application/pdf") {
-        alert("Please select a PDF file.");
-        fileInput.value = "";
+
+    /*
+        Check file types
+    */
+
+    const allowedTypes = [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    ];
+
+
+    for (const file of files) {
+
+        if (!allowedTypes.includes(file.type)) {
+
+            alert(
+                "Only PDF, JPG, PNG and WEBP files are allowed."
+            );
+
+            fileInput.value = "";
+
+            return;
+        }
+    }
+
+
+    /*
+        Check PDF + image mixing
+    */
+
+    const hasPDF = files.some(
+        file => file.type === "application/pdf"
+    );
+
+    const hasImages = files.some(
+        file => file.type.startsWith("image/")
+    );
+
+
+    if (hasPDF && hasImages) {
+
+        alert(
+            "Please select either a PDF OR images, not both."
+        );
+
         return;
     }
 
-    // Check file size (5 MB)
+
+    /*
+        Only one PDF
+    */
+
+    if (hasPDF && files.length > 1) {
+
+        alert(
+            "Please select only one PDF file."
+        );
+
+        return;
+    }
+
+
     const maxSize = 5 * 1024 * 1024;
 
-    if (file.size > maxSize) {
-        alert("PDF must be smaller than 5 MB.");
-        fileInput.value = "";
-        return;
-    }
 
-    const uploadButton = document.getElementById("upload_btn");
+    const uploadButton =
+        document.getElementById("upload_btn");
+
+    const upload_box =
+        document.getElementById("upload_box");
+
+    const box =
+        document.getElementById("up_bx");
+
+    const text =
+        document.getElementById("uploading_text");
+
 
     uploadButton.disabled = true;
 
-    const upload_box=document.getElementById("upload_box");
-    const box=document.getElementById("up_bx");
-    const text=document.getElementById("uploading_text");
 
-    box.style.background="#EDEDEE";
-    text.innerHTML="Uploading...<br/><img src='uploading.gif' width='100rem' height='100rem'>"
-    upload_box.style.display='flex';
+    box.style.background = "#EDEDEE";
+
+
+    text.innerHTML =
+        "Preparing...<br/>" +
+        "<img src='uploading.gif' width='100rem' height='100rem'>";
+
+
+    upload_box.style.display = "flex";
+
 
     try {
-        const filePath=semester+"/"+subject+"/"+year+".pdf";
-        const fileName=subject+"_"+semester+"_"+year+".pdf";
-        
-        const { error: storageError } =
-            await supabaseClient
-                .storage
-                .from("pyqs")
-                .upload(filePath, file, {
+
+        let pdfFile;
+
+
+        /*
+            CASE 1:
+            User selected an existing PDF
+        */
+
+        if (hasPDF) {
+
+            pdfFile = files[0];
+
+
+            if (pdfFile.size >= maxSize) {
+
+                throw new Error(
+                    "PDF must be smaller than 5 MB."
+                );
+            }
+
+        }
+
+
+        /*
+            CASE 2:
+            User selected images
+        */
+
+        else {
+
+            text.innerHTML =
+                "Converting images to PDF...<br/>" +
+                "<img src='uploading.gif' width='100rem' height='100rem'>";
+
+
+            const pdfBlob =
+                await createPDFUnder5MB(files);
+
+
+            if (!pdfBlob) {
+
+                throw new Error(
+                    "The selected images are too large. " +
+                    "Please select fewer images or smaller images."
+                );
+            }
+
+
+            if (pdfBlob.size >= maxSize) {
+
+                throw new Error(
+                    "Generated PDF must be smaller than 5 MB."
+                );
+            }
+
+
+            pdfFile = new File(
+                [pdfBlob],
+                subject + "_" + semester + "_" + year + ".pdf",
+                {
+                    type: "application/pdf"
+                }
+            );
+
+        }
+
+
+        /*
+            Final safety check
+        */
+
+        if (pdfFile.size >= maxSize) {
+
+            throw new Error(
+                "PDF must be smaller than 5 MB."
+            );
+        }
+
+
+        console.log(
+            "Final PDF size:",
+            (pdfFile.size / 1024 / 1024).toFixed(2),
+            "MB"
+        );
+
+
+        /*
+            Uploading
+        */
+
+        text.innerHTML =
+            "Uploading...<br/>" +
+            "<img src='uploading.gif' width='100rem' height='100rem'>";
+
+
+        const filePath =
+            semester +
+            "/" +
+            subject +
+            "/" +
+            year +
+            ".pdf";
+
+
+        const fileName =
+            subject +
+            "_" +
+            semester +
+            "_" +
+            year +
+            ".pdf";
+
+
+        const {
+            error: storageError
+        } = await supabaseClient
+            .storage
+            .from("pyqs")
+            .upload(
+                filePath,
+                pdfFile,
+                {
                     contentType: "application/pdf",
                     upsert: false
-                });
+                }
+            );
+
+
+        /*
+            Storage error
+        */
 
         if (storageError) {
 
-            // File already exists
             if (
                 storageError.message &&
-                storageError.message.toLowerCase().includes("already exists")
+                storageError.message
+                    .toLowerCase()
+                    .includes("already exists")
             ) {
+
                 text.innerHTML =
                     "File already uploaded by someone";
 
                 setTimeout(() => {
+
                     upload_box.style.display = "none";
+
                 }, 3000);
 
                 return;
             }
 
+
             throw storageError;
         }
 
 
-        const { error: databaseError } =
-            await supabaseClient
-                .from("papers")
-                .insert({
-                    file_path: filePath,
-                    file_name: fileName,
-                    semester: Number(semester),
-                    subject: subject,
-                    year: Number(year)
-                });
+        /*
+            Insert database record
+        */
+
+        const {
+            error: databaseError
+        } = await supabaseClient
+            .from("papers")
+            .insert({
+
+                file_path: filePath,
+
+                file_name: fileName,
+
+                semester: Number(semester),
+
+                subject: subject,
+
+                year: Number(year)
+
+            });
+
+
+        /*
+            If DB insert fails,
+            delete uploaded PDF
+        */
 
         if (databaseError) {
 
@@ -421,30 +934,70 @@ async function upload() {
                 .from("pyqs")
                 .remove([filePath]);
 
+
             throw databaseError;
         }
 
-        box.style.background="#EBF0FF";
-        text.innerHTML="Uploaded successfully<br/><img src='uploaded.gif' width='100rem' height='100rem'>";
-        setTimeout(()=>{
-            text.innerHTML="Thank you for your contribution<br/><img src='heart.png' width='60rem' height='50rem'>";
-            setTimeout(()=>{
-                upload_box.style.display="none";
-            },2000);
-        },3000);
-        fileInput.value = "";
-    } catch (error) {
-        console.error("Upload failed:", error);
-        text.innerHTML="Upload failed. Please try again.";
+
+        /*
+            Success
+        */
+
+        box.style.background = "#EBF0FF";
+
+
+        text.innerHTML =
+            "Uploaded successfully<br/>" +
+            "<img src='uploaded.gif' width='100rem' height='100rem'>";
+
+
         setTimeout(() => {
-            upload_box.style.display = "none";
+
+            text.innerHTML =
+                "Thank you for your contribution<br/>" +
+                "<img src='heart.png' width='60rem' height='50rem'>";
+
+
+            setTimeout(() => {
+
+                upload_box.style.display = "none";
+
+            }, 2000);
+
         }, 3000);
 
 
+        fileInput.value = "";
+
+
+    } catch (error) {
+
+        console.error(
+            "Upload failed:",
+            error
+        );
+
+
+        text.innerHTML =
+            error.message ||
+            "Upload failed. Please try again.";
+
+
+        setTimeout(() => {
+
+            upload_box.style.display = "none";
+
+        }, 3500);
+
+
     } finally {
+
         uploadButton.disabled = false;
+
+    }
+
 }
-}
+
 </script>
 
 <script>
