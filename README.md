@@ -2,6 +2,8 @@
 
 An unofficial website for accessing previous-year question papers (PYQs) for BCA students of Burdwan University.
 
+Live at https://bubcapyqs.netlify.app/
+
 ## About
 
 Burdwan University BCA PYQs is a student-focused platform created to make previous-year question papers easier to find and access.
